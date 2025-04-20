@@ -21,8 +21,12 @@ services:
   traefik:
 #    container_name: traefik
     image: traefik:3.3.4
+    user: ${PUID:-1000}:${PGID:-1000}
     security_opt:
-      - no-new-privileges:true
+      - "no-new-privileges:true"
+    cap-drop:
+      - SETUID
+      - SETGID
     restart: unless-stopped
     # profiles: ["core", "all"]
     networks:
