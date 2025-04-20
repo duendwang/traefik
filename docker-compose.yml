@@ -1,16 +1,10 @@
 networks:
   default:
-#    driver: bridge
   socket-proxy:
     name: socket-proxy
     external: true
-#    driver: bridge
-#    ipam:
-#      config:
-#        - subnet: 192.168.91.0/24
   traefik-proxy:
     name: traefik-proxy
-#      driver: bridge
 
 secrets:
   basic_auth_credentials:
@@ -19,19 +13,17 @@ secrets:
 services:
   # Traefik 3 - Reverse Proxy
   traefik:
-#    container_name: traefik
     image: traefik:3.3.4
     user: ${PUID:-1000}:${PGID:-1000}
     security_opt:
       - "no-new-privileges:true"
-    cap-drop:
+    cap__drop:
       - SETUID
       - SETGID
     restart: unless-stopped
     # profiles: ["core", "all"]
     networks:
       traefik-proxy:
-#        ipv4_address: 192.168.90.254 # You can specify a static IP
       socket-proxy:
     command: # CLI arguments
       - --global.checkNewVersion=true
