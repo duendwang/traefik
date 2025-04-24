@@ -1,27 +1,13 @@
-networks:
-  default:
-  socket-proxy:
-    name: socket-proxy
-    external: true
-  traefik-proxy:
-    name: traefik-proxy
-
 secrets:
   basic_auth_credentials:
     file: $DOCKERDIR/traefik/secrets/basic_auth_credentials
-
 services:
   # Traefik 3 - Reverse Proxy
   traefik:
     image: traefik:3.3.4
-    user: ${PUID:-1000}:${PGID:-1000}
     security_opt:
       - "no-new-privileges:true"
-    cap_drop:
-      - SETUID
-      - SETGID
     restart: unless-stopped
-    # profiles: ["core", "all"]
     networks:
       traefik-proxy:
       socket-proxy:
@@ -58,18 +44,18 @@ services:
       - --entrypoints.websecure.http.tls.options=tls-opts@file
       # Add dns-cloudflare as default certresolver for all services. Also enables TLS and no need to specify on individual services
       - --entrypoints.websecure.http.tls.certresolver=http
-#      - --entrypoints.websecure.http.tls.domains[0].main=$DOMAINNAME_1
-#      - --entrypoints.websecure.http.tls.domains[0].sans=*.$DOMAINNAME_1
+      #- --entrypoints.websecure.http.tls.domains[0].main=$DOMAINNAME_1
+      #- --entrypoints.websecure.http.tls.domains[0].sans=*.$DOMAINNAME_1
       # - --entrypoints.websecure.http.tls.domains[1].main=$DOMAINNAME_2 # Pulls main cert for second domain
       # - --entrypoints.websecure.http.tls.domains[1].sans=*.$DOMAINNAME_2 # Pulls wildcard cert for second domain
       - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
       - --providers.file.watch=true # Only works on top level files in the rules folder
       - --certificatesresolvers.http-challenge.acme.httpchallenge=true
-#      - --certificatesResolvers.http-challenge.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      #- --certificatesResolvers.http-challenge.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
       - --certificatesResolvers.http-challenge.acme.storage=/acme.json
       - --certificatesresolvers.http-challenge.acme.email=$LETSENCRYPT_DEFAULT_EMAIL
       - --certificatesresolvers.http-challenge.acme.httpchallenge.entrypoint=web
-#      - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      #- --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
       - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
@@ -83,22 +69,18 @@ services:
         published: 443
         protocol: tcp
         mode: host
-      # - target: 8080 # need to enable --api.insecure=true
-      #  published: 8085
-      #  protocol: tcp
-      #  mode: host
     volumes:
       - $DOCKERDIR/traefik/data/rules:/rules # Dynamic File Provider directory
-      # - /var/run/docker.sock:/var/run/docker.sock:ro # Enable if not using Socket Proxy
+      #- /var/run/docker.sock:/var/run/docker.sock:ro # Enable if not using Socket Proxy
       - $DOCKERDIR/traefik/data/acme/acme.json:/acme.json # Certs File
       - $DOCKERDIR/traefik/data/logs:/logs # Traefik logs
     environment:
       - TZ=$TZ
-#      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
+      #- CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
       - HTPASSWD_FILE=/run/secrets/basic_auth_credentials # HTTP Basic Auth Credentials
       - DOMAINNAME_1 # Passing the domain name to traefik container to be able to use the variable in rules.
     secrets:
-#      - cf_dns_api_token
+      #- cf_dns_api_token
       - basic_auth_credentials
     labels:
       - "traefik.enable=true"
@@ -110,3 +92,9 @@ services:
       - "traefik.http.routers.traefik-rtr.service=api@internal"
       # Middlewares
       - "traefik.http.routers.traefik-rtr.middlewares=middlewares-basic-auth@file" # For Basic HTTP Authentication
+networks:
+  default:
+  socket-proxy:
+    external: true
+  traefik-proxy:
+    name: traefik-proxy
